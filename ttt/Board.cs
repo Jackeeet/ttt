@@ -2,9 +2,11 @@
 
 public class Board
 {
-    private CellState[] _board;
+    private CellState[][] _board;
 
     private GameState _lastState;
+
+    private int _cellsTaken;
 
     public GameState LastState
     {
@@ -29,33 +31,52 @@ public class Board
 
     public readonly int Size;
 
+    public readonly int MinCellNumber;
+
+    public readonly int MaxCellNumber;
+
     public Board(int size)
     {
-        _board = new CellState[size * size];
-        _lastState = GameState.Initial;
         Size = size;
+        MinCellNumber = 1;
+        MaxCellNumber = Size * Size;
+
+        _board = new CellState[Size][];
+        for (int i = 0; i < Size; i++)
+            _board[i] = new CellState[Size];
+        _cellsTaken = 0;
+        _lastState = GameState.Initial;
     }
 
-    public CellState this[int i]
+    public CellState this[int cellNumber]
     {
-        get => _board[i - 1];
-        set => _board[i - 1] = value;
+        get
+        {
+            var (row, column) = ToBoardIndices(cellNumber);
+            return _board[row][column];
+        }
+        set
+        {
+            var (row, column) = ToBoardIndices(cellNumber);
+            _board[row][column] = value;
+        }
     }
 
     public GameState TakeTurn(int cellNumber)
     {
-        if (!GameEnded())
-        {
-            if (_board[cellNumber] == CellState.Empty)
-                SetCell(cellNumber);
-            else
-                LastState = GameState.Error;
-        }
+        if (GameEnded())
+            throw new InvalidGameStateException();
 
-        return LastState;
+        if (this[cellNumber] != CellState.Empty)
+            return GameState.Error;
+
+        return SetCell(cellNumber);
     }
 
-    private void SetCell(int cellNumber)
+    public bool GameEnded() => LastState is GameState.Tie
+        or GameState.WinX or GameState.WinO;
+
+    private GameState SetCell(int cellNumber)
     {
         var (value, state) = LastState switch
         {
@@ -65,33 +86,84 @@ public class Board
             _ => throw new InvalidGameStateException()
         };
 
-        _board[cellNumber] = value;
+        this[cellNumber] = value;
+        _cellsTaken += 1;
         LastState = state;
+        return CheckGameEnded(cellNumber);
     }
 
-    private bool GameEnded() => LastState is GameState.Tie
-        or GameState.WinX or GameState.WinO;
-
-    private CellState[] Row(int rowNumber)
+    private GameState CheckGameEnded(int cellNumber)
     {
-        var start = Size * rowNumber;
-        var end = 3 * (Size - rowNumber - 1);
-        return _board[start..end];
+        var cellState = LastState switch
+        {
+            GameState.TurnO => CellState.Nought,
+            GameState.TurnX => CellState.Cross,
+            _ => throw new InvalidGameStateException()
+        };
+
+        if (HasWinningLine(cellNumber, cellState))
+        {
+            LastState = cellState == CellState.Cross ? GameState.WinX : GameState.WinO;
+        }
+        else if (_cellsTaken == Size * Size)
+        {
+            LastState = GameState.Tie;
+        }
+
+        return LastState;
     }
+
+    private bool HasWinningLine(int cellNumber, CellState cellState)
+    {
+        var (rowNumber, colNumber) = ToBoardIndices(cellNumber);
+        return IsWinningLine(Row(rowNumber), cellState)
+               || IsWinningLine(Column(colNumber), cellState)
+               || OnMainDiagonal(cellNumber) && IsWinningLine(MainDiagonal(), cellState)
+               || OnCounterDiagonal(cellNumber) && IsWinningLine(CounterDiagonal(), cellState);
+    }
+
+
+    private CellState[] Row(int rowNumber) => _board[rowNumber];
 
     private CellState[] Column(int colNumber)
     {
-        return _board.Where((c, i) => i % colNumber == 0).ToArray();
+        var column = new CellState[Size];
+        for (int i = 0; i < Size; i++)
+            column[i] = _board[i][colNumber];
+        return column;
     }
 
-    private CellState[] Diagonal(bool main)
+    private CellState[] MainDiagonal()
     {
-        var result = new CellState[Size];
+        var diagonal = new CellState[Size];
         for (int i = 0; i < Size; i++)
-        {
-            result[i] = main ? _board[i * Size + i] : _board[(i + 1) * Size - (i + 1)];
-        }
+            diagonal[i] = _board[i][i];
+        return diagonal;
+    }
 
-        return result;
+    private CellState[] CounterDiagonal()
+    {
+        var diagonal = new CellState[Size];
+        for (int i = 0; i < Size; i++)
+            diagonal[i] = _board[i][Size - 1 - i];
+        return diagonal;
+    }
+
+    private bool IsWinningLine(CellState[] line, CellState cellState) =>
+        line.All((cell) => cell == cellState);
+
+    private (int, int) ToBoardIndices(int cellNumber) =>
+        ((cellNumber - 1) / Size, (cellNumber - 1) % Size);
+
+    private bool OnMainDiagonal(int cellNumber)
+    {
+        var (row, col) = ToBoardIndices(cellNumber);
+        return row == col;
+    }
+
+    private bool OnCounterDiagonal(int cellNumber)
+    {
+        var (row, col) = ToBoardIndices(cellNumber);
+        return row == Size - 1 - col;
     }
 }
