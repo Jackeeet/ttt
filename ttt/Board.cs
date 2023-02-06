@@ -11,7 +11,7 @@ public class Board
     public GameState LastState
     {
         get => _lastState;
-        set
+        private set
         {
             switch (_lastState)
             {
@@ -55,7 +55,7 @@ public class Board
             var (row, column) = ToBoardIndices(cellNumber);
             return _board[row][column];
         }
-        set
+        private set
         {
             var (row, column) = ToBoardIndices(cellNumber);
             _board[row][column] = value;
@@ -65,10 +65,15 @@ public class Board
     public GameState TakeTurn(int cellNumber)
     {
         if (GameEnded())
+        {
             throw new InvalidGameStateException();
+        }
 
-        if (this[cellNumber] != CellState.Empty)
+        if (cellNumber < MinCellNumber || cellNumber > MaxCellNumber
+                                       || this[cellNumber] != CellState.Empty)
+        {
             return GameState.Error;
+        }
 
         return SetCell(cellNumber);
     }
@@ -149,12 +154,6 @@ public class Board
         return diagonal;
     }
 
-    private bool IsWinningLine(CellState[] line, CellState cellState) =>
-        line.All((cell) => cell == cellState);
-
-    private (int, int) ToBoardIndices(int cellNumber) =>
-        ((cellNumber - 1) / Size, (cellNumber - 1) % Size);
-
     private bool OnMainDiagonal(int cellNumber)
     {
         var (row, col) = ToBoardIndices(cellNumber);
@@ -166,4 +165,10 @@ public class Board
         var (row, col) = ToBoardIndices(cellNumber);
         return row == Size - 1 - col;
     }
+
+    private bool IsWinningLine(CellState[] line, CellState cellState) =>
+        line.All((cell) => cell == cellState);
+
+    private (int, int) ToBoardIndices(int cellNumber) =>
+        ((cellNumber - 1) / Size, (cellNumber - 1) % Size);
 }
