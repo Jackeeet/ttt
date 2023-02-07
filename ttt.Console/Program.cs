@@ -37,14 +37,7 @@ void MarkCell(Board board)
 
 void TakeTurn(Board board)
 {
-    var player = board.LastState switch
-    {
-        GameState.TurnO or GameState.Initial => "X",
-        GameState.TurnX => "O",
-        _ => ""
-    };
-
-    IoTools.WriteHeader($"Player {player}'s turn");
+    IoTools.WriteHeader($"Player {board.NextPlayer}'s turn");
     IoTools.WriteBoard(board);
     MarkCell(board);
 }
@@ -52,7 +45,9 @@ void TakeTurn(Board board)
 
 void Run()
 {
-    var board = new Board(3);
+    var size = 3;
+    IoTools.ClearScreen(size * 2 + 5);
+    var board = new Board(size);
     while (!board.GameEnded())
     {
         TakeTurn(board);
@@ -60,8 +55,7 @@ void Run()
 
     var gameResult = board.LastState switch
     {
-        GameState.WinX => "Player X won!",
-        GameState.WinO => "Player O won!",
+        GameState.WinX or GameState.WinO => $"Player {board.NextPlayer} won!",
         GameState.Tie => "It's a tie!",
         _ => throw new InvalidGameStateException()
     };

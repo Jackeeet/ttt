@@ -8,9 +8,26 @@ public class Board
 
     private int _cellsTaken;
 
+    private Player _nextPlayer;
+
+    public Player NextPlayer
+    {
+        get => _nextPlayer;
+        private set
+        {
+            if (_nextPlayer == value)
+            {
+                throw new ArgumentException($"LastPlayer is already {value}");
+            }
+
+            _nextPlayer = value;
+        }
+    }
+
     public GameState LastState
     {
         get => _lastState;
+
         private set
         {
             switch (_lastState)
@@ -30,9 +47,7 @@ public class Board
     }
 
     public readonly int Size;
-
     public readonly int MinCellNumber;
-
     public readonly int MaxCellNumber;
 
     public Board(int size)
@@ -46,6 +61,7 @@ public class Board
             _board[i] = new CellState[Size];
         _cellsTaken = 0;
         _lastState = GameState.Initial;
+        _nextPlayer = Player.X;
     }
 
     public CellState this[int cellNumber]
@@ -75,11 +91,28 @@ public class Board
             return GameState.Error;
         }
 
-        return SetCell(cellNumber);
+        var gameState = SetCell(cellNumber);
+        if (!GameEnded())
+        {
+            NextPlayer = NextPlayer == Player.X ? Player.O : Player.X;
+        }
+
+        return gameState;
     }
 
     public bool GameEnded() => LastState is GameState.Tie
         or GameState.WinX or GameState.WinO;
+
+    public Board Clone()
+    {
+        return new Board(Size)
+        {
+            _board = (CellState[][])_board.Clone(),
+            _cellsTaken = _cellsTaken,
+            LastState = LastState,
+            NextPlayer = NextPlayer
+        };
+    }
 
     private GameState SetCell(int cellNumber)
     {
@@ -126,7 +159,6 @@ public class Board
                || OnMainDiagonal(cellNumber) && IsWinningLine(MainDiagonal(), cellState)
                || OnCounterDiagonal(cellNumber) && IsWinningLine(CounterDiagonal(), cellState);
     }
-
 
     private CellState[] Row(int rowNumber) => _board[rowNumber];
 

@@ -2,10 +2,22 @@
 
 public static class IoTools
 {
-    public static void ClearLine()
+    private static void ClearLine()
     {
         for (int i = 0; i < 80; i++)
             System.Console.Write(" ");
+    }
+
+    public static void ClearScreen(int lineCount)
+    {
+        System.Console.SetCursorPosition(0, 0);
+        for (int i = 0; i < lineCount; i++)
+        {
+            ClearLine();
+            System.Console.SetCursorPosition(0, System.Console.CursorTop + 1);
+        }
+
+        System.Console.SetCursorPosition(0, 0);
     }
 
     public static void WriteHeader(string message)
