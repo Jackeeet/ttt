@@ -17,7 +17,7 @@ public class Board
         {
             if (_nextPlayer == value)
             {
-                throw new ArgumentException($"LastPlayer is already {value}");
+                throw new ArgumentException($"NextPlayer is already {value}");
             }
 
             _nextPlayer = value;
@@ -105,13 +105,23 @@ public class Board
 
     public Board Clone()
     {
-        return new Board(Size)
+        var clone = new Board(Size)
         {
-            _board = (CellState[][])_board.Clone(),
             _cellsTaken = _cellsTaken,
-            LastState = LastState,
-            NextPlayer = NextPlayer
+            LastState = LastState
         };
+        
+        for (var i = 0; i < Size; i++)
+        {
+            clone._board[i] = (CellState[])_board[i].Clone();
+        }
+
+        if (NextPlayer != clone.NextPlayer)
+        {
+            clone.NextPlayer = NextPlayer;
+        }
+
+        return clone;
     }
 
     private GameState SetCell(int cellNumber)
@@ -203,4 +213,20 @@ public class Board
 
     private (int, int) ToBoardIndices(int cellNumber) =>
         ((cellNumber - 1) / Size, (cellNumber - 1) % Size);
+
+    protected bool Equals(Board other)
+    {
+        return _board.SequenceEqual(other._board)
+               && _lastState == other._lastState
+               && _cellsTaken == other._cellsTaken
+               && _nextPlayer == other._nextPlayer;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((Board)obj);
+    }
 }
