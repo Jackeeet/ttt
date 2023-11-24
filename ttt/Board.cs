@@ -2,7 +2,7 @@
 
 public class Board
 {
-    private CellState[][] _board;
+    private readonly CellState[][] _board;
 
     private GameState _lastState;
 
@@ -46,6 +46,8 @@ public class Board
         }
     }
 
+    public int LastTakenCellNumber { get; private set; }
+
     public readonly int Size;
     public readonly int MinCellNumber;
     public readonly int MaxCellNumber;
@@ -55,6 +57,7 @@ public class Board
         Size = size;
         MinCellNumber = 1;
         MaxCellNumber = Size * Size;
+        LastTakenCellNumber = -1;
 
         _board = new CellState[Size][];
         for (int i = 0; i < Size; i++)
@@ -110,7 +113,7 @@ public class Board
             _cellsTaken = _cellsTaken,
             LastState = LastState
         };
-        
+
         for (var i = 0; i < Size; i++)
         {
             clone._board[i] = (CellState[])_board[i].Clone();
@@ -137,6 +140,7 @@ public class Board
         this[cellNumber] = value;
         _cellsTaken += 1;
         LastState = state;
+        LastTakenCellNumber = cellNumber;
         return CheckGameEnded(cellNumber);
     }
 
@@ -170,9 +174,9 @@ public class Board
                || OnCounterDiagonal(cellNumber) && IsWinningLine(CounterDiagonal(), cellState);
     }
 
-    private CellState[] Row(int rowNumber) => _board[rowNumber];
+    public CellState[] Row(int rowNumber) => _board[rowNumber];
 
-    private CellState[] Column(int colNumber)
+    public CellState[] Column(int colNumber)
     {
         var column = new CellState[Size];
         for (int i = 0; i < Size; i++)
@@ -180,7 +184,7 @@ public class Board
         return column;
     }
 
-    private CellState[] MainDiagonal()
+    public CellState[] MainDiagonal()
     {
         var diagonal = new CellState[Size];
         for (int i = 0; i < Size; i++)
@@ -188,7 +192,7 @@ public class Board
         return diagonal;
     }
 
-    private CellState[] CounterDiagonal()
+    public CellState[] CounterDiagonal()
     {
         var diagonal = new CellState[Size];
         for (int i = 0; i < Size; i++)
@@ -228,5 +232,15 @@ public class Board
         if (ReferenceEquals(this, obj)) return true;
         if (obj.GetType() != GetType()) return false;
         return Equals((Board)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(_board);
+    }
+
+    public override string ToString()
+    {
+        return _board.ToString() ?? "None";
     }
 }

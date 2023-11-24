@@ -28,6 +28,5 @@ public class GameTree
         }
 
         return root;
-
     }
 }

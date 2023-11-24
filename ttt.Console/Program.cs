@@ -1,68 +1,84 @@
-﻿using ttt;
-using ttt.Console;
+﻿namespace ttt.Console;
 
-int GetCellNumber(Board board, bool prompt = true)
+internal static class Program
 {
-    if (prompt)
+    private static readonly Random rand = new();
+
+    private static int GetCellNumber(Board board, bool prompt = true)
     {
-        IoTools.WriteMessage("Choose a cell:  ");
+        if (prompt)
+        {
+            IoTools.WriteMessage("Choose a cell:  ");
+        }
+
+        System.Console.SetCursorPosition(System.Console.CursorLeft - 1, System.Console.CursorTop);
+        var gotNumber = int.TryParse(System.Console.ReadLine(), out var number);
+        while (!gotNumber || number < board.MinCellNumber || number > board.MaxCellNumber)
+        {
+            IoTools.WriteMessage(
+                $"Please enter a number from {board.MinCellNumber} to {board.MaxCellNumber}: "
+            );
+            gotNumber = int.TryParse(System.Console.ReadLine(), out number);
+        }
+
+        return number;
     }
 
-    Console.SetCursorPosition(Console.CursorLeft - 1, Console.CursorTop);
-    var gotNumber = int.TryParse(Console.ReadLine(), out var number);
-    while (!gotNumber || number < board.MinCellNumber || number > board.MaxCellNumber)
+    private static void MarkCell(Board board)
     {
-        IoTools.WriteMessage(
-            $"Please enter a number from {board.MinCellNumber} to {board.MaxCellNumber}: "
-        );
-        gotNumber = int.TryParse(Console.ReadLine(), out number);
+        var cellNumber = GetCellNumber(board);
+        var gameState = board.TakeTurn(cellNumber);
+        while (gameState == GameState.Error)
+        {
+            IoTools.WriteMessage(
+                $"Cell #{cellNumber} is already taken. Please choose a different cell:  "
+            );
+            cellNumber = GetCellNumber(board, prompt: false);
+            gameState = board.TakeTurn(cellNumber);
+        }
     }
 
-    return number;
-}
-
-void MarkCell(Board board)
-{
-    var cellNumber = GetCellNumber(board);
-    var gameState = board.TakeTurn(cellNumber);
-    while (gameState == GameState.Error)
+    private static void TakeHumanTurn(Board board)
     {
-        IoTools.WriteMessage(
-            $"Cell #{cellNumber} is already taken. Please choose a different cell:  "
-        );
-        cellNumber = GetCellNumber(board, prompt: false);
-        gameState = board.TakeTurn(cellNumber);
-    }
-}
-
-void TakeTurn(Board board)
-{
-    IoTools.WriteHeader($"Player {board.NextPlayer}'s turn");
-    IoTools.WriteBoard(board);
-    MarkCell(board);
-}
-
-
-void Run()
-{
-    var size = 3;
-    IoTools.ClearScreen(size * 2 + 5);
-    var board = new Board(size);
-    while (!board.GameEnded())
-    {
-        TakeTurn(board);
+        IoTools.WriteHeader($"Player {board.NextPlayer}'s turn");
+        IoTools.WriteBoard(board);
+        MarkCell(board);
     }
 
-    var gameResult = board.LastState switch
+    private static void TakeBotTurn(Board board, Bot.Bot bot)
     {
-        GameState.WinX or GameState.WinO => $"Player {board.NextPlayer} won!",
-        GameState.Tie => "It's a tie!",
-        _ => throw new InvalidGameStateException()
-    };
+        IoTools.WriteHeader($"Player {board.NextPlayer}'s turn");
+        IoTools.WriteBoard(board);
+        IoTools.WriteMessage($"Player {board.NextPlayer} is making a turn...");
+        // Thread.Sleep(rand.Next(5, 11) * 1000);
+        bot.TakeTurn(board);
+        Thread.Sleep(2 * 1000);
+    }
 
-    IoTools.WriteHeader("Game Over");
-    IoTools.WriteBoard(board);
-    IoTools.WriteMessage(gameResult);
+    public static void Main(string[] args)
+    {
+        var size = 3;
+        IoTools.ClearScreen(size * 2 + 5);
+        var board = new Board(size);
+        var bot = new Bot.Bot(Player.O);
+
+        while (!board.GameEnded())
+        {
+            TakeHumanTurn(board);
+            if (board.GameEnded())
+                break;
+            TakeBotTurn(board, bot);
+        }
+
+        var gameResult = board.LastState switch
+        {
+            GameState.WinX or GameState.WinO => $"Player {board.NextPlayer} won!",
+            GameState.Tie => "It's a tie!",
+            _ => throw new InvalidGameStateException()
+        };
+
+        IoTools.WriteHeader("Game Over");
+        IoTools.WriteBoard(board);
+        IoTools.WriteMessage(gameResult);
+    }
 }
-
-Run();
